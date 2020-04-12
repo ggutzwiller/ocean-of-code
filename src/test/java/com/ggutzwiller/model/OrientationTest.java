@@ -1,3 +1,6 @@
+package com.ggutzwiller.model;
+
+import com.ggutzwiller.model.Orientation;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -48,5 +51,11 @@ public class OrientationTest {
 
         found = Orientation.byLabel("S");
         Assert.assertEquals(found, Orientation.SOUTH);
+    }
+
+    @Test
+    public void byLabel_shouldReturnNorthByDefault() {
+        Orientation found = Orientation.byLabel("R");
+        Assert.assertEquals(found, Orientation.NORTH);
     }
 }

@@ -1,3 +1,7 @@
+package com.ggutzwiller.strategy;
+
+import com.ggutzwiller.model.Grid;
+import com.ggutzwiller.strategy.Game;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
