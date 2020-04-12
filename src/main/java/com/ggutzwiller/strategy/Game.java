@@ -82,11 +82,7 @@ public class Game {
                 return "MOVE " + way.orientation.label + " " + chooseCharge();
             } else {
                 Optional<Cell> cell = Optional.of(currentCell);
-                for (int i = 1; i < way.distance; i++) {
-                    cell = this.grid.applyOrientation(cell.get(), way.orientation);
-                    cell.get().taken = true;
-                }
-
+                this.grid.markCellOnWayAs(currentCell, way, true);
                 return "SILENCE " + way.orientation.label + " " + way.distance;
             }
         }
@@ -129,15 +125,15 @@ public class Game {
 
         int max = 0;
         for (Way nextWay : possibleWays) {
-            nextCell.get().taken = true;
+            this.grid.markCellOnWayAs(departureCell, nextWay, true);
             int score = computeScoreForWay(nextCell.get(), nextWay, depth - 1);
             if (score == NUMBER_OF_MOVEMENT_TO_FORESEE) {
-                nextCell.get().taken = false;
+                this.grid.markCellOnWayAs(departureCell, nextWay, false);
                 return score;
             } else if (score > max) {
                 max = score;
             }
-            nextCell.get().taken = false;
+            this.grid.markCellOnWayAs(departureCell, nextWay, false);
         }
         return max;
     }

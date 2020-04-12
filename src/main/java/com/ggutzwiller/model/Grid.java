@@ -100,4 +100,16 @@ public class Grid {
                 .filter(cell -> targetCell.torpedoDamages(cell) == 1)
                 .collect(Collectors.toList());
     }
+
+    public void markCellOnWayAs(Cell cell, Way way, boolean taken) {
+        for (int i = 1; i <= way.distance; i++) {
+            Optional<Cell> possibleCell = this.applyOrientation(cell, way.orientation);
+            if (!possibleCell.isPresent()) {
+                Printer.error("Unable to find cells to mark as " + (taken ? "taken" : "not taken"));
+                return;
+            }
+            cell = possibleCell.get();
+            cell.taken = taken || cell.island;
+        }
+    }
 }
