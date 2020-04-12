@@ -92,4 +92,12 @@ public class Grid {
 
         return Optional.empty();
     }
+
+    public List<Cell> getTorpedoZone(Cell targetCell) {
+        return Arrays.stream(this.cells)
+                .flatMap(Arrays::stream)
+                .filter(cell -> !cell.island)
+                .filter(cell -> targetCell.torpedoDamages(cell) == 1)
+                .collect(Collectors.toList());
+    }
 }

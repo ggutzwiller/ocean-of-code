@@ -29,4 +29,14 @@ public class Cell {
     public int distance(Cell cell) {
         return Math.abs(this.posY - cell.posY) + Math.abs(this.posX - cell.posX);
     }
+
+    public int torpedoDamages(Cell cell) {
+        if (cell.equals(this)) {
+            return 2;
+        } else if (Math.abs(this.posY - cell.posY) <= 1 && Math.abs(this.posX - cell.posX) <= 1) {
+            return 1;
+        }
+
+        return 0;
+    }
 }

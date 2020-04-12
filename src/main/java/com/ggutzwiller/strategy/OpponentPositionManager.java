@@ -26,7 +26,7 @@ public class OpponentPositionManager {
     }
 
     public void recomputePositions(String orders, int opponentLifeLost) {
-        handleTouchedOpponent(opponentLifeLost);
+        handleTouchedOpponent(opponentLifeLost, orders);
         this.lastShot = null;
 
         Arrays.stream(orders.split("\\|"))
@@ -46,9 +46,14 @@ public class OpponentPositionManager {
         }
     }
 
-    private void handleTouchedOpponent(int opponentLifeLost) {
-        if (lastShot != null && opponentLifeLost == 2) {
+    private void handleTouchedOpponent(int opponentLifeLost, String orders) {
+        if (lastShot != null && opponentLifeLost == 2 && !orders.contains("SURFACE")) {
             this.possibleOpponentCells = Collections.singletonList(this.lastShot);
+        } else if (lastShot != null && (opponentLifeLost == 2 || opponentLifeLost == 1 && !orders.contains("SURFACE"))) {
+            List<Cell> torpedoZone = this.grid.getTorpedoZone(lastShot);
+            this.possibleOpponentCells = this.possibleOpponentCells.stream()
+                    .filter(torpedoZone::contains)
+                    .collect(Collectors.toList());
         }
     }
 

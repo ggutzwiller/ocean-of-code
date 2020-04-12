@@ -20,4 +20,33 @@ public class CellTest {
         Assert.assertEquals(distance, 4);
     }
 
+    @Test
+    public void torpedoDamages_sameCell_shouldReturn2() {
+        Cell cell = new Cell(false, 2, 2, 1);
+
+        int damages = cell.torpedoDamages(cell);
+
+        Assert.assertEquals(damages, 2);
+    }
+
+    @Test
+    public void torpedoDamages_rangeCell_shouldReturn1() {
+        Cell cell1 = new Cell(false, 2, 2, 1);
+        Cell cell2 = new Cell(false, 3, 3, 1);
+
+        int damages = cell1.torpedoDamages(cell2);
+
+        Assert.assertEquals(damages, 1);
+    }
+
+    @Test
+    public void torpedoDamages_rangeCell_shouldReturn0() {
+        Cell cell1 = new Cell(false, 2, 2, 1);
+        Cell cell2 = new Cell(false, 4, 2, 1);
+
+        int damages = cell1.torpedoDamages(cell2);
+
+        Assert.assertEquals(damages, 0);
+    }
+
 }
