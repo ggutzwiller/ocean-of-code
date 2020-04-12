@@ -49,4 +49,14 @@ public class CellTest {
         Assert.assertEquals(damages, 0);
     }
 
+    @Test
+    public void orientationToGoTo_neighboorCell_shouldReturnE() {
+        Cell cell1 = new Cell(false, 2, 2, 1);
+        Cell cell2 = new Cell(false, 3, 2, 1);
+
+        Orientation orientation = cell1.orientationToGoTo(cell2);
+
+        Assert.assertEquals(orientation, Orientation.EAST);
+    }
+
 }

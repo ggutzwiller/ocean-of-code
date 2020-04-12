@@ -3,6 +3,7 @@ package com.ggutzwiller.io;
 import com.ggutzwiller.model.Grid;
 import com.ggutzwiller.model.Submarine;
 import com.ggutzwiller.strategy.Game;
+import com.ggutzwiller.strategy.MovementManager;
 import com.ggutzwiller.strategy.OpponentPositionManager;
 
 import java.util.ArrayList;

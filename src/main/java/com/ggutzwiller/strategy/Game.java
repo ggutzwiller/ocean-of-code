@@ -17,6 +17,7 @@ public class Game {
     public Submarine enemySubmarine;
     public Grid grid;
     public OpponentPositionManager opponentPositionManager;
+    public MovementManager movementManager;
 
     public String chooseStartingPosition() {
         Cell startCell = Arrays.stream(this.grid.cells)
@@ -32,6 +33,7 @@ public class Game {
                 .findAny()
                 .orElse(this.grid.cells[1][1]);
 
+        this.movementManager = new MovementManager(this.grid, startCell, this.playerSubmarine);
         return startCell.toString();
     }
 
@@ -67,91 +69,16 @@ public class Game {
      *  + Shall we return a cell instead? or an orientation? or a couple of (orientation, distance)?
      */
     private String chooseMovement(int movesCount) {
-        Cell currentCell = this.playerSubmarine.cell;
+        Optional<Way> way = movementManager.chooseMovement(movesCount);
 
-        List<Way> possibleWays = getPossibleWays(currentCell, movesCount);
-
-        if (possibleWays.isEmpty()) {
-            Printer.log("There is no possible ways, let's surface.");
-            this.grid.reset();
+        if (!way.isPresent()) {
             return "SURFACE";
+        } else if (way.get().distance == 1) {
+            return "MOVE " + way.get().orientation.label + " " + chooseCharge();
         } else {
-            Way way = findBestWay(currentCell, possibleWays);
-            this.playerSubmarine.cell = this.grid.applyWay(currentCell, way).get();
-            this.grid.markCellOnWayAs(currentCell, way, true);
-
-            if (way.distance == 1) {
-                return "MOVE " + way.orientation.label + " " + chooseCharge();
-            } else {
-                return "SILENCE " + way.orientation.label + " " + way.distance;
-            }
-        }
-    }
-
-    private Way findBestWay(Cell departureCell, List<Way> possibleWays) {
-        Map<Way, Integer> scoresPerWay = new HashMap<>();
-
-        for (Way way : possibleWays) {
-            int score = computeScoreForWay(departureCell, way, NUMBER_OF_MOVEMENT_TO_FORESEE);
-            if (score == NUMBER_OF_MOVEMENT_TO_FORESEE) {
-                return way;
-            }
-            scoresPerWay.put(way, score);
+            return "SILENCE " + way.get().orientation.label + " " + way.get().distance;
         }
 
-        Map.Entry<Way, Integer> chosenWay = scoresPerWay.entrySet()
-                .stream()
-                .sorted((way1, way2) -> way2.getValue() - way1.getValue())
-                .findFirst()
-                .get();
-        Printer.log("Chosen way (" + chosenWay.getKey().toString() + ") has a score of: " + chosenWay.getValue());
-        return chosenWay.getKey();
-    }
-
-    private int computeScoreForWay(Cell departureCell, Way way, int depth) {
-        if (depth == 0) {
-            return NUMBER_OF_MOVEMENT_TO_FORESEE;
-        }
-
-        Optional<Cell> nextCell = this.grid.applyWay(departureCell, way);
-        if (!nextCell.isPresent()) {
-            return 0;
-        }
-
-        List<Way> possibleWays = getPossibleWays(nextCell.get(), 1);
-        if (possibleWays.isEmpty()) {
-            return NUMBER_OF_MOVEMENT_TO_FORESEE - depth;
-        }
-
-        int max = 0;
-        for (Way nextWay : possibleWays) {
-            this.grid.markCellOnWayAs(departureCell, nextWay, true);
-            int score = computeScoreForWay(nextCell.get(), nextWay, depth - 1);
-            if (score == NUMBER_OF_MOVEMENT_TO_FORESEE) {
-                this.grid.markCellOnWayAs(departureCell, nextWay, false);
-                return score;
-            } else if (score > max) {
-                max = score;
-            }
-            this.grid.markCellOnWayAs(departureCell, nextWay, false);
-        }
-        return max;
-    }
-
-    private List<Way> getPossibleWays(Cell departureCell, int movesCount) {
-        Optional<Cell> proposedCell;
-        List<Way> ways = new ArrayList<>();
-        for (Orientation orientation : Orientation.values()) {
-            for (int i = movesCount; i > 0; i--) {
-                proposedCell = this.grid.getNextCellForPlayerMove(departureCell, orientation, i);
-
-                if (proposedCell.isPresent() && !proposedCell.get().taken) {
-                    ways.add(new Way(i, orientation));
-                }
-            }
-        }
-
-        return ways;
     }
 
     // TODO: logic of choose charge should be more complex than based on torpedo cooldown

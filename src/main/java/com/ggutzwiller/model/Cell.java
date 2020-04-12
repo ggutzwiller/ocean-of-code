@@ -1,5 +1,8 @@
 package com.ggutzwiller.model;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 /**
  * Represents a cell in the grid. Can be taken if we are not allowed to go on it.
  */
@@ -28,6 +31,13 @@ public class Cell {
 
     public int distance(Cell cell) {
         return Math.abs(this.posY - cell.posY) + Math.abs(this.posX - cell.posX);
+    }
+
+    public Orientation orientationToGoTo(Cell cell) {
+        return Arrays.stream(Orientation.values())
+                .filter(v -> v.forwardX == (cell.posX - this.posX) && v.forwardY == (cell.posY - this.posY))
+                .findFirst()
+                .get();
     }
 
     public int torpedoDamages(Cell cell) {
