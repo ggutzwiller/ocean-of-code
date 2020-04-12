@@ -2,6 +2,7 @@ package com.ggutzwiller.strategy;
 
 import com.ggutzwiller.io.Printer;
 import com.ggutzwiller.model.*;
+import com.sun.source.tree.IfTree;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -77,12 +78,11 @@ public class Game {
         } else {
             Way way = findBestWay(currentCell, possibleWays);
             this.playerSubmarine.cell = this.grid.applyWay(currentCell, way).get();
+            this.grid.markCellOnWayAs(currentCell, way, true);
 
             if (way.distance == 1) {
                 return "MOVE " + way.orientation.label + " " + chooseCharge();
             } else {
-                Optional<Cell> cell = Optional.of(currentCell);
-                this.grid.markCellOnWayAs(currentCell, way, true);
                 return "SILENCE " + way.orientation.label + " " + way.distance;
             }
         }
@@ -187,6 +187,17 @@ public class Game {
                     .findAny();
         }
 
+        /* If we still find none, perhaps we can shot on an adjacent cell */
+        if (!targetCell.isPresent() && possibleOpponentCells.size() < 24) {
+            for (Cell possibleTargetCell : possibleTargetCells) {
+                List<Cell> torpedoZone = this.grid.getTorpedoZone(possibleTargetCell);
+
+                if (!Collections.disjoint(torpedoZone, possibleOpponentCells)) {
+                    targetCell = Optional.of(possibleTargetCell);
+                    break;
+                }
+            }
+        }
 
         return targetCell.map(cell -> {
             this.opponentPositionManager.lastShot = cell;
