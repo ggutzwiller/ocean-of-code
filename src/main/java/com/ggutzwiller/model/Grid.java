@@ -36,12 +36,6 @@ public class Grid {
         }
     }
 
-    public void reset() {
-        Arrays.stream(cells)
-                .flatMap(Arrays::stream)
-                .forEach(Cell::reset);
-    }
-
     public List<Cell> retrieveDistantCells(Cell currentCell, int min, int max) {
         List<Cell> distantCells = Arrays.stream(this.cells)
                 .flatMap(Arrays::stream)
@@ -52,40 +46,24 @@ public class Grid {
         return distantCells;
     }
 
-    public Optional<Cell> getNextCellForPlayerMove(Cell initialCell, Orientation orientation, int movesCount) {
-        for (int i = 1; i < movesCount; i++) {
-            Optional<Cell> intermediateCell = applyWay(initialCell, new Way(i, orientation));
-            if (!intermediateCell.isPresent() || intermediateCell.get().taken) {
-                return Optional.empty();
-            }
-        }
-
-        Optional<Cell> nextCell = this.applyWay(initialCell, new Way(movesCount, orientation));
-        if (!nextCell.isPresent() || nextCell.get().taken) {
-            return Optional.empty();
-        }
-
-        return nextCell;
+    public Optional<Cell> applyOrientation(Path currentPath, Orientation orientation) {
+        return applyWay(currentPath, new Way(1, orientation));
     }
 
-    public Optional<Cell> applyOrientation(Cell departureCell, Orientation orientation) {
-        return applyWay(departureCell, new Way(1, orientation));
-    }
+    public Optional<Cell> applyWay(Path currentPath, Way way) {
+        int nextX = currentPath.lastCell.posX + (way.orientation.forwardX * way.distance);
+        int nextY = currentPath.lastCell.posY + (way.orientation.forwardY * way.distance);
 
-    public Optional<Cell> applyWay(Cell departureCell, Way way) {
-        int nextX = departureCell.posX + (way.orientation.forwardX * way.distance);
-        int nextY = departureCell.posY + (way.orientation.forwardY * way.distance);
-
-        for (int i = 1; i < way.distance; i++) {
-            Optional<Cell> intermediateCell = applyWay(departureCell, new Way(i, way.orientation));
-            if (!intermediateCell.isPresent()) {
+        if (way.distance > 1) {
+            Optional<Cell> intermediateCell = applyWay(currentPath, new Way(way.distance - 1, way.orientation));
+            if (!intermediateCell.isPresent() || currentPath.cells.contains(intermediateCell.get())) {
                 return Optional.empty();
             }
         }
 
         if (!(nextX < 0 || nextX > width - 1 || nextY < 0 || nextY > height - 1)) {
             Cell foundCell = this.cells[nextX][nextY];
-            if (!foundCell.island) {
+            if (!foundCell.island && !currentPath.cells.contains(foundCell)) {
                 return Optional.of(foundCell);
             }
         }
@@ -101,15 +79,15 @@ public class Grid {
                 .collect(Collectors.toList());
     }
 
-    public void markCellOnWayAs(Cell cell, Way way, boolean taken) {
+    public void applyChosenWayOnPath(Path currentPath, Way way) {
         for (int i = 1; i <= way.distance; i++) {
-            Optional<Cell> possibleCell = this.applyOrientation(cell, way.orientation);
+            Optional<Cell> possibleCell = this.applyOrientation(currentPath, way.orientation);
             if (!possibleCell.isPresent()) {
-                Printer.error("Unable to find cells to mark as " + (taken ? "taken" : "not taken"));
+                Printer.error("Unable to find cell to mark as taken");
                 return;
             }
-            cell = possibleCell.get();
-            cell.taken = taken || cell.island;
+
+            currentPath.addCell(possibleCell.get());
         }
     }
 }

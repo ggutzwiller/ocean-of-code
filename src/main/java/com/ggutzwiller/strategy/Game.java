@@ -39,8 +39,6 @@ public class Game {
 
     // TODO: refactor the logic of a "turn". It is not either silence or default, whether the silence is ready or not.
     public String playTurn() {
-        this.playerSubmarine.cell.taken = true;
-
         if (this.playerSubmarine.silenceCooldown == 0) {
             return playSilenceTurn();
         }
@@ -96,7 +94,7 @@ public class Game {
             return "";
         }
 
-        List<Cell> possibleOpponentCells = this.opponentPositionManager.getPossibleOpponentCells();
+        Set<Cell> possibleOpponentCells = this.opponentPositionManager.getPossibleOpponentCells();
         if (possibleOpponentCells.size() > 48) {
             return "";
         }

@@ -1,26 +1,28 @@
 package com.ggutzwiller.model;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * @author Grégoire Gutzwiller
  * @since 12/04/2020
  */
 public class Path {
-    public List<Cell> cells = new ArrayList<>();
+    public Set<Cell> cells = new HashSet<>();
+    public Cell lastCell;
 
     public Path(Cell cell) {
         this.cells.add(cell);
+        this.lastCell = cell;
     }
 
     public Path(Path pathToCopy) {
-        this.cells = new ArrayList<>(pathToCopy.cells);
+        this.cells = new HashSet<>(pathToCopy.cells);
+        this.lastCell = pathToCopy.lastCell;
     }
 
-    public Cell lastCell() {
-        return cells.get(cells.size() - 1);
+    public void addCell(Cell cell) {
+        this.cells.add(cell);
+        this.lastCell = cell;
     }
 
     @Override
@@ -28,11 +30,20 @@ public class Path {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Path path = (Path) o;
-        return cells.equals(path.cells);
+        return cells.equals(path.cells) &&
+                lastCell.equals(path.lastCell);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cells);
+        return Objects.hash(cells, lastCell);
+    }
+
+    @Override
+    public String toString() {
+        return "Path{" +
+                "cells=" + cells +
+                ", lastCell=" + lastCell +
+                '}';
     }
 }

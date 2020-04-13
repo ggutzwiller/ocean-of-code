@@ -4,7 +4,6 @@ import com.ggutzwiller.io.Printer;
 import com.ggutzwiller.model.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Grégoire Gutzwiller
@@ -16,29 +15,31 @@ public class MovementManager {
     public Grid grid;
     public Cell currentCell;
     public Submarine playerSubmarine;
+    public Path playerPath;
 
     public MovementManager(Grid grid, Cell currentCell, Submarine playerSubmarine) {
         this.grid = grid;
         this.currentCell = currentCell;
         this.playerSubmarine = playerSubmarine;
+        this.playerPath = new Path(currentCell);
     }
 
     public Optional<Way> chooseMovement(int movesCount) {
         Cell currentCell = this.playerSubmarine.cell;
-        this.playerSubmarine.cell.taken = true;
+        this.playerPath.addCell(currentCell);
 
-        List<Way> possibleWays = getPossibleWays(currentCell, movesCount);
+        List<Way> possibleWays = getPossibleWays(playerPath, movesCount);
 
         if (possibleWays.isEmpty()) {
             Printer.log("There is no possible ways, let's surface.");
-            this.grid.reset();
+            this.playerPath = new Path(this.playerSubmarine.cell);
             return Optional.empty();
         } else {
-            Path path = new Path(currentCell);
+            Path path = new Path(this.playerPath);
             Way way = findBestWay(path, possibleWays);
 
-            this.playerSubmarine.cell = this.grid.applyWay(currentCell, way).get();
-            this.grid.markCellOnWayAs(currentCell, way, true);
+            this.grid.applyChosenWayOnPath(this.playerPath, way);
+            this.playerSubmarine.cell = this.playerPath.lastCell;
 
             return Optional.of(way);
         }
@@ -48,7 +49,8 @@ public class MovementManager {
         Map<Way, Integer> scoresPerWay = new HashMap<>();
 
         for (Way way : possibleWays) {
-            int score = computeScoreForWay(path, way, NUMBER_OF_MOVEMENT_TO_FORESEE);
+            int score = computeScoreForWay(new Path(path), way, NUMBER_OF_MOVEMENT_TO_FORESEE);
+            Printer.log("Way " + way.toString() + " has score " + score);
             if (score == NUMBER_OF_MOVEMENT_TO_FORESEE) {
                 return way;
             }
@@ -68,39 +70,33 @@ public class MovementManager {
             return NUMBER_OF_MOVEMENT_TO_FORESEE;
         }
 
-        Cell currentCell = path.lastCell();
+        this.grid.applyChosenWayOnPath(path, way);
 
-        Optional<Cell> nextCell = this.grid.applyWay(currentCell, way);
-        if (!nextCell.isPresent()) {
-            return 0;
-        }
-
-        List<Way> possibleWays = getPossibleWays(nextCell.get(), 1);
-        if (possibleWays.isEmpty() || path.cells.contains(nextCell.get())) {
+        List<Way> possibleWays = getPossibleWays(path, way.distance);
+        if (possibleWays.isEmpty()) {
             return NUMBER_OF_MOVEMENT_TO_FORESEE - depth;
         }
 
         int max = 0;
         for (Way nextWay : possibleWays) {
-            path.cells.add(nextCell.get());
-            int score = computeScoreForWay(path, nextWay, depth - 1);
+            Path nextPath = new Path(path);
+            int score = computeScoreForWay(nextPath, nextWay, depth - 1);
+
             if (score == NUMBER_OF_MOVEMENT_TO_FORESEE) {
-                path.cells.remove(nextCell.get());
                 return score;
             } else if (score > max) {
                 max = score;
             }
-            path.cells.remove(nextCell.get());
         }
         return max;
     }
 
-    private List<Way> getPossibleWays(Cell departureCell, int movesCount) {
+    private List<Way> getPossibleWays(Path path, int movesCount) {
         Optional<Cell> proposedCell;
         List<Way> ways = new ArrayList<>();
         for (Orientation orientation : Orientation.values()) {
             for (int i = movesCount; i > 0; i--) {
-                proposedCell = this.grid.getNextCellForPlayerMove(departureCell, orientation, i);
+                proposedCell = this.grid.applyWay(path, new Way(i, orientation));
 
                 if (proposedCell.isPresent()) {
                     ways.add(new Way(i, orientation));

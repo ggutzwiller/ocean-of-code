@@ -12,7 +12,7 @@ import java.util.stream.Stream;
  */
 public class OpponentPositionManager {
     public Grid grid;
-    public List<Path> possibleOpponentPaths;
+    public Set<Path> possibleOpponentPaths;
     public Cell lastShot;
 
     public OpponentPositionManager(Grid grid) {
@@ -21,7 +21,7 @@ public class OpponentPositionManager {
                 .flatMap(Arrays::stream)
                 .filter(cell -> !cell.island)
                 .map(Path::new)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     public void recomputePositions(String orders, int opponentLifeLost) {
@@ -43,7 +43,7 @@ public class OpponentPositionManager {
                     }
                 });
 
-        List<Cell> possibleCells = this.getPossibleOpponentCells();
+        Set<Cell> possibleCells = this.getPossibleOpponentCells();
         Printer.log("Number of possible paths: " + possibleOpponentPaths.size() + " and cells: " + possibleCells.size());
         if (possibleCells.size() < 36) {
             Printer.log("Possible cells are: " + possibleCells);
@@ -53,41 +53,40 @@ public class OpponentPositionManager {
             Printer.log("Too much paths, reducing size to current possible cells");
             this.possibleOpponentPaths = possibleCells.stream()
                     .map(Path::new)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
         }
     }
 
-    public List<Cell> getPossibleOpponentCells() {
+    public Set<Cell> getPossibleOpponentCells() {
         return possibleOpponentPaths.stream()
-                .map(Path::lastCell)
-                .distinct()
-                .collect(Collectors.toList());
+                .map(path -> path.lastCell)
+                .collect(Collectors.toSet());
     }
 
     private void handleTouchedOpponent(int opponentLifeLost, String orders) {
         if (lastShot != null && opponentLifeLost == 2 && !orders.contains("SURFACE")) {
             this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
-                    .filter(path -> path.lastCell().equals(this.lastShot))
-                    .collect(Collectors.toList());
+                    .filter(path -> path.lastCell.equals(this.lastShot))
+                    .collect(Collectors.toSet());
         } else if (lastShot != null && (opponentLifeLost == 2 || opponentLifeLost == 1 && !orders.contains("SURFACE"))) {
             List<Cell> torpedoZone = this.grid.getTorpedoZone(lastShot);
             this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
-                    .filter(path -> torpedoZone.contains(path.lastCell()))
-                    .collect(Collectors.toList());
+                    .filter(path -> torpedoZone.contains(path.lastCell))
+                    .collect(Collectors.toSet());
         }
     }
 
     private void handleMoveOrder(Orientation orientation) {
         this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
                 .flatMap(path -> {
-                    Optional<Cell> possibleCell = this.grid.applyOrientation(path.lastCell(), orientation);
+                    Optional<Cell> possibleCell = this.grid.applyOrientation(path, orientation);
                     if (!possibleCell.isPresent() || possibleCell.get().island || path.cells.contains(possibleCell.get())) {
                         return Stream.empty();
                     }
-                    path.cells.add(possibleCell.get());
+                    path.addCell(possibleCell.get());
                     return Stream.of(path);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     private void handleSilenceOrder() {
@@ -96,29 +95,27 @@ public class OpponentPositionManager {
                     List<Cell> nextCells = new ArrayList<>();
                     for (Orientation orientation : Orientation.values()) {
                         for (int i = 1; i <= 4; i++) {
-                            this.grid.applyWay(path.lastCell(), new Way(i, orientation))
+                            this.grid.applyWay(path, new Way(i, orientation))
                                     .ifPresent(nextCells::add);
                         }
                     }
-                    nextCells.add(path.lastCell());
+                    nextCells.add(path.lastCell);
 
                     return nextCells.stream()
                             .distinct()
-                            .filter(cell -> !cell.island && (cell == path.lastCell() || !path.cells.contains(cell)))
                             .map(cell -> {
                                 Path newPath = new Path(path);
-                                newPath.cells.add(cell);
+                                newPath.addCell(cell);
                                 return newPath;
                             });
                 })
-                .distinct()
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
     void handleSectorOrder(int sector) {
         this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
-                .filter(path -> path.lastCell().sector == sector)
-                .collect(Collectors.toList());
+                .filter(path -> path.lastCell.sector == sector)
+                .collect(Collectors.toSet());
     }
 
     void handleTorpedoOrder(String torpedoCoordinates) {
@@ -126,7 +123,7 @@ public class OpponentPositionManager {
         Cell shotCell = this.grid.cells[Integer.parseInt(coord[0])][Integer.parseInt(coord[1])];
 
         this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
-                .filter(path -> shotCell.distance(path.lastCell()) <= 4)
-                .collect(Collectors.toList());
+                .filter(path -> shotCell.distance(path.lastCell) <= 4)
+                .collect(Collectors.toSet());
     }
 }

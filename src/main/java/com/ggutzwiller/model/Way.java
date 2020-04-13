@@ -7,7 +7,6 @@ package com.ggutzwiller.model;
 public class Way {
     public int distance;
     public Orientation orientation;
-    public Cell nextCell;
 
     public Way(int distance, Orientation orientation) {
         this.distance = distance;
