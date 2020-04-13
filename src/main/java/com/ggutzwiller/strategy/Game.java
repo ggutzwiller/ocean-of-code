@@ -96,7 +96,7 @@ public class Game {
             return "";
         }
 
-        List<Cell> possibleOpponentCells = this.opponentPositionManager.possibleOpponentCells;
+        List<Cell> possibleOpponentCells = this.opponentPositionManager.getPossibleOpponentCells();
         if (possibleOpponentCells.size() > 48) {
             return "";
         }

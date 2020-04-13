@@ -34,9 +34,7 @@ public class MovementManager {
             this.grid.reset();
             return Optional.empty();
         } else {
-            Path path = new Path();
-            path.cells.add(currentCell);
-
+            Path path = new Path(currentCell);
             Way way = findBestWay(path, possibleWays);
 
             this.playerSubmarine.cell = this.grid.applyWay(currentCell, way).get();
@@ -70,7 +68,7 @@ public class MovementManager {
             return NUMBER_OF_MOVEMENT_TO_FORESEE;
         }
 
-        Cell currentCell = path.cells.get(path.cells.size() - 1);
+        Cell currentCell = path.lastCell();
 
         Optional<Cell> nextCell = this.grid.applyWay(currentCell, way);
         if (!nextCell.isPresent()) {

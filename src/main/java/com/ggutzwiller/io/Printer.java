@@ -5,11 +5,12 @@ package com.ggutzwiller.io;
  */
 public class Printer {
     public static void log(String message) {
-        System.err.println(message);
+        long millis = System.currentTimeMillis() % 10000;
+        System.err.println(millis + ": " + message);
     }
 
     public static void error(String message) {
-        System.err.println("ERROR - " + message);
+        System.err.println("ERROR: " + message);
     }
 
     public static void order(String message) {
