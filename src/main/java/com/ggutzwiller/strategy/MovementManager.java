@@ -6,8 +6,7 @@ import com.ggutzwiller.model.*;
 import java.util.*;
 
 /**
- * @author Grégoire Gutzwiller
- * @since 12/04/2020
+ * The movement manager computes all the possible moments and knows where to go.
  */
 public class MovementManager {
     private static final int NUMBER_OF_MOVEMENT_TO_FORESEE = 10;
@@ -24,6 +23,9 @@ public class MovementManager {
         this.playerPath = new Path(currentCell);
     }
 
+    /**
+     * Choose the way to go to given the distance we can go to
+     */
     public Optional<Way> chooseMovement(int movesCount) {
         Cell currentCell = this.playerSubmarine.cell;
         this.playerPath.addCell(currentCell);
@@ -45,6 +47,12 @@ public class MovementManager {
         }
     }
 
+    /**
+     * Find the best way among all the possible ways
+     * @param path the current Path of our submarine
+     * @param possibleWays the possible ways
+     * @return the best way
+     */
     private Way findBestWay(Path path, List<Way> possibleWays) {
         Map<Way, Integer> scoresPerWay = new HashMap<>();
 
@@ -65,6 +73,13 @@ public class MovementManager {
         return chosenWay.getKey();
     }
 
+    /**
+     * Compute a score (0 to NUMBER_OF_MOVEMENT_TO_FORESEE) for a given way. Higher the score, better the way.
+     * @param path the current Path of our submarine
+     * @param way the way to evaluate
+     * @param depth the depth (ie. it is a recursive function)
+     * @return the score for the given way
+     */
     private int computeScoreForWay(Path path, Way way, int depth) {
         if (depth == 0) {
             return NUMBER_OF_MOVEMENT_TO_FORESEE;
@@ -91,11 +106,20 @@ public class MovementManager {
         return max;
     }
 
+    /**
+     * Returns all the possible ways given a path and the maximum number of moves we can do
+     * @param path the path of current submarine
+     * @param movesCount the maximum number of moves we can do
+     * @return the list of possible ways. We keep it ordered to avoid erratic movements.
+     */
     private List<Way> getPossibleWays(Path path, int movesCount) {
         Optional<Cell> proposedCell;
         List<Way> ways = new ArrayList<>();
+
+        List<Integer> distances = getPossibleDistances(movesCount);
+
         for (Orientation orientation : Orientation.values()) {
-            for (int i = movesCount; i > 0; i--) {
+            for (Integer i : distances) {
                 proposedCell = this.grid.applyWay(path, new Way(i, orientation));
 
                 if (proposedCell.isPresent()) {
@@ -105,5 +129,14 @@ public class MovementManager {
         }
 
         return ways;
+    }
+
+    private List<Integer> getPossibleDistances(int maxDistance) {
+        List<Integer> possibleDistances = new ArrayList<>();
+        for (int i = maxDistance; i > 0; i--) {
+            possibleDistances.add(i);
+        }
+        Collections.shuffle(possibleDistances);
+        return possibleDistances;
     }
 }

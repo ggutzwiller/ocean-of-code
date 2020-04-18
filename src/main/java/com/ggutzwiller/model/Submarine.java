@@ -7,6 +7,7 @@ public class Submarine {
     public int id;
     public Cell cell;
     public int life;
+    public int lostLife;
     public int torpedoCooldown;
     public int sonarCooldown;
     public int silenceCooldown;

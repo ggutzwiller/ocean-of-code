@@ -1,8 +1,7 @@
 package com.ggutzwiller.model;
 
 /**
- * @author Grégoire Gutzwiller
- * @since 12/04/2020
+ * A Way is a combination of an Orientation and a distance.
  */
 public class Way {
     public int distance;

@@ -3,8 +3,9 @@ package com.ggutzwiller.model;
 import java.util.*;
 
 /**
- * @author Grégoire Gutzwiller
- * @since 12/04/2020
+ * A Path is the set of cells that a submarine already went to.
+ * The representation is a set of cells that a submarine went to, and the lastCell is the cell where
+ * the submarine is currently.
  */
 public class Path {
     public Set<Cell> cells = new HashSet<>();

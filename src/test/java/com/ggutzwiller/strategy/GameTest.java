@@ -36,7 +36,7 @@ public class GameTest {
                 "3 3"
         );
 
-        Assert.assertTrue(possibleResults.contains("1 1"));
+        Assert.assertTrue(possibleResults.contains(startingPosition));
     }
 
 }

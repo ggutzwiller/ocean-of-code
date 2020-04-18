@@ -2,21 +2,24 @@ package com.ggutzwiller.model;
 
 import com.ggutzwiller.io.Printer;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * @author Grégoire Gutzwiller
- * @since 12/04/2020
+ * This is the grid for the ocean of code game. It generally contains 225 cells.
  */
 public class Grid {
     public int width;
     public int height;
     public Cell[][] cells;
 
+    /**
+     * Constructor for grid : includes the construction of all the cells based on the
+     * lines given by the Reader.
+     * @param width width of the grid, generally 15
+     * @param height height of the grid, generally 15
+     * @param lines lines representing the grid, 'x' is an island cell, '.' is a sea cell
+     */
     public Grid(int width, int height, List<String> lines) {
         Printer.log("Now creating grid (" + width + ", " + height + ").");
         Printer.log("Input lines are:\n" + String.join("\n", lines));
@@ -36,20 +39,37 @@ public class Grid {
         }
     }
 
-    public List<Cell> retrieveDistantCells(Cell currentCell, int min, int max) {
-        List<Cell> distantCells = Arrays.stream(this.cells)
+    /**
+     * Retrieve all the cells around a given cell.
+     * @param currentCell the cell to search around
+     * @param min min distance (let's say I want to avoid to send a torpedo on my submarine...)
+     * @param max max distance (I cannot shoot at 5+ distance)
+     * @return a set of cells
+     */
+    public Set<Cell> retrieveDistantCells(Cell currentCell, int min, int max) {
+        return Arrays.stream(this.cells)
                 .flatMap(Arrays::stream)
                 .filter(c -> (c.distance(currentCell) <= max) && c.distance(currentCell) >= min)
-                .collect(Collectors.toList());
-
-        Collections.shuffle(distantCells);
-        return distantCells;
+                .collect(Collectors.toSet());
     }
 
+    /**
+     * Return the "next cell" given an orientation
+     * @param currentPath the current path with current cell is its lastCell
+     * @param orientation the orientation I want to "go to"
+     * @return the "next cell", if it exists, an empty optional otherwise
+     */
     public Optional<Cell> applyOrientation(Path currentPath, Orientation orientation) {
         return applyWay(currentPath, new Way(1, orientation));
     }
 
+    /**
+     * Similar as applyOrientation but with a Way, ie. an orientation and a distance.
+     * It will check that I can go on all the cells on the way.
+     * @param currentPath the current path with current cells is its lastCell
+     * @param way the way I want to "go to"
+     * @return the "next cell", if it exists, an empty optional otherwise
+     */
     public Optional<Cell> applyWay(Path currentPath, Way way) {
         int nextX = currentPath.lastCell.posX + (way.orientation.forwardX * way.distance);
         int nextY = currentPath.lastCell.posY + (way.orientation.forwardY * way.distance);
@@ -71,14 +91,24 @@ public class Grid {
         return Optional.empty();
     }
 
-    public List<Cell> getTorpedoZone(Cell targetCell) {
+    /**
+     * Returns all the cells that were shot by a torpedo but were not the target cell itself
+     * @param targetCell the target cell
+     * @return a set of cells that were shot
+     */
+    public Set<Cell> getTorpedoZone(Cell targetCell) {
         return Arrays.stream(this.cells)
                 .flatMap(Arrays::stream)
                 .filter(cell -> !cell.island)
                 .filter(cell -> targetCell.torpedoDamages(cell) == 1)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
     }
 
+    /**
+     * Apply a way on a path, similar as applyWay but will really apply it on the path.
+     * @param currentPath the current path
+     * @param way the way to "go to"
+     */
     public void applyChosenWayOnPath(Path currentPath, Way way) {
         for (int i = 1; i <= way.distance; i++) {
             Optional<Cell> possibleCell = this.applyOrientation(currentPath, way.orientation);

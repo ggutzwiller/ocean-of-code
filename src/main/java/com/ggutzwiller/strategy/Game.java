@@ -11,14 +11,18 @@ import java.util.stream.Collectors;
  * Handle all the game logic, ie. choosing the start position and then play each turn according to logic.
  */
 public class Game {
-    private static final int NUMBER_OF_MOVEMENT_TO_FORESEE = 10;
-
     public Submarine playerSubmarine;
     public Submarine enemySubmarine;
     public Grid grid;
+    public String lastOrders;
+
     public OpponentPositionManager opponentPositionManager;
     public MovementManager movementManager;
+    public ActionManager actionManager;
 
+    /**
+     * Choose the starting position.
+     */
     public String chooseStartingPosition() {
         Cell startCell = Arrays.stream(this.grid.cells)
                 .flatMap(Arrays::stream)
@@ -37,22 +41,24 @@ public class Game {
         return startCell.toString();
     }
 
-    // TODO: refactor the logic of a "turn". It is not either silence or default, whether the silence is ready or not.
+    /**
+     * Play a turn.
+     */
     public String playTurn() {
-        if (this.playerSubmarine.silenceCooldown == 0) {
-            return playSilenceTurn();
+        if (this.playerSubmarine.lostLife > 0 && this.playerSubmarine.silenceCooldown == 0) {
+            return chooseMovement(4);
         }
 
-        return playDefaultTurn();
-    }
+        String movement = chooseMovement(1) + " " + actionManager.charge();
+        String action = "";
 
-    private String playSilenceTurn() {
-        return chooseMovement(4);
-    }
-
-    private String playDefaultTurn() {
-        String movement = chooseMovement(1);
-        String action = chooseAction();
+        if (this.playerSubmarine.torpedoCooldown == 0) {
+            Optional<Cell> torpedoCell = actionManager.launchTorpedo(opponentPositionManager.getPossibleOpponentCells());
+            action = torpedoCell.map(cell -> {
+                this.opponentPositionManager.lastShot = cell;
+                return "TORPEDO " + cell.toString();
+            }).orElse("");
+        }
 
         if (action.equals("")) {
             return movement;
@@ -61,72 +67,18 @@ public class Game {
         return movement + " | " + action;
     }
 
-    /* TODO: refactor to make it clearer,
-     *  Option 1: this is used only for MOVE order, not SILENCE --> Silence logic is moved elsewhere.
-     *  Option 2: if we keep it for SILENCE --> should be renamed, and logic simplified.
-     *  + Shall we return a cell instead? or an orientation? or a couple of (orientation, distance)?
+    /**
+     * Choose the movement to play this turn.
      */
     private String chooseMovement(int movesCount) {
         Optional<Way> way = movementManager.chooseMovement(movesCount);
 
         if (!way.isPresent()) {
             return "SURFACE";
-        } else if (way.get().distance == 1) {
-            return "MOVE " + way.get().orientation.label + " " + chooseCharge();
+        } else if (movesCount == 1) {
+            return "MOVE " + way.get().orientation.label;
         } else {
             return "SILENCE " + way.get().orientation.label + " " + way.get().distance;
         }
-
-    }
-
-    // TODO: logic of choose charge should be more complex than based on torpedo cooldown
-    private String chooseCharge() {
-        return this.playerSubmarine.torpedoCooldown == 0 ? "SILENCE" : "TORPEDO";
-    }
-
-    /* TODO: torpedo is not the only action now. + should we manage movement here?
-     *  + we should absolutely use SILENCE order differently. It should not be automatic.
-     */
-    private String chooseAction() {
-        Printer.log("Torpedo cooldown: " + this.playerSubmarine.torpedoCooldown);
-
-        if (this.playerSubmarine.torpedoCooldown != 0) {
-            return "";
-        }
-
-        Set<Cell> possibleOpponentCells = this.opponentPositionManager.getPossibleOpponentCells();
-        if (possibleOpponentCells.size() > 48) {
-            return "";
-        }
-
-        List<Cell> possibleTargetCells = this.grid.retrieveDistantCells(this.playerSubmarine.cell, 3, 4);
-        Optional<Cell> targetCell = possibleTargetCells.stream()
-                .filter(possibleOpponentCells::contains)
-                .findAny();
-
-        /* If we find none, let's try with closer cells */
-        if (!targetCell.isPresent() && possibleOpponentCells.size() < 24) {
-            possibleTargetCells = this.grid.retrieveDistantCells(this.playerSubmarine.cell, 1, 4);
-            targetCell = possibleTargetCells.stream()
-                    .filter(possibleOpponentCells::contains)
-                    .findAny();
-        }
-
-        /* If we still find none, perhaps we can shot on an adjacent cell */
-        if (!targetCell.isPresent() && possibleOpponentCells.size() < 24) {
-            for (Cell possibleTargetCell : possibleTargetCells) {
-                List<Cell> torpedoZone = this.grid.getTorpedoZone(possibleTargetCell);
-
-                if (!Collections.disjoint(torpedoZone, possibleOpponentCells)) {
-                    targetCell = Optional.of(possibleTargetCell);
-                    break;
-                }
-            }
-        }
-
-        return targetCell.map(cell -> {
-            this.opponentPositionManager.lastShot = cell;
-            return "TORPEDO " + cell.toString();
-        }).orElse("");
     }
 }
