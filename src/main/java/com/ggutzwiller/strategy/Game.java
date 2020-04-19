@@ -45,40 +45,65 @@ public class Game {
      * Play a turn.
      */
     public String playTurn() {
-        if (this.playerSubmarine.lostLife > 0 && this.playerSubmarine.silenceCooldown == 0) {
-            return chooseMovement(4);
+        /* SILENCE orders */
+        String silenceOrderBefore = "";
+        if (this.playerSubmarine.silenceCooldown == 0) {
+            silenceOrderBefore = chooseSilence();
         }
 
-        String movement = chooseMovement(1) + " " + actionManager.charge();
-        String action = "";
+        /* MOVE orders */
+        String moveOrder = chooseMovement() + " " + actionManager.charge();
 
+        /* TORPEDO orders */
+        String torpedoOrder = "";
         if (this.playerSubmarine.torpedoCooldown == 0) {
-            Optional<Cell> torpedoCell = actionManager.launchTorpedo(opponentPositionManager.getPossibleOpponentCells());
-            action = torpedoCell.map(cell -> {
+            Optional<Cell> torpedoCell = actionManager.launchTorpedo(opponentPositionManager.possibleOpponentCells);
+            torpedoOrder = torpedoCell.map(cell -> {
                 this.opponentPositionManager.lastShot = cell;
                 return "TORPEDO " + cell.toString();
             }).orElse("");
         }
 
-        if (action.equals("")) {
-            return movement;
+        /* MINE orders */
+        String mineOrder = "";
+        Optional<Cell> triggerCell = actionManager.triggerMine(opponentPositionManager.possibleOpponentCells);
+        mineOrder = triggerCell.map(cell -> {
+            this.opponentPositionManager.lastMine = cell;
+            return "TRIGGER " + cell.toString();
+        }).orElseGet(() -> {
+            if (this.playerSubmarine.mineCooldown == 0) {
+                Optional<Orientation> orientation = actionManager.dropMine();
+                if (orientation.isPresent()) {
+                    return "MINE " + orientation.get().label;
+                }
+            }
+            return "";
+        });
+
+        /* SILENCE orders */
+        String silenceOrderAfter = "";
+        if (silenceOrderBefore.equals("") && this.playerSubmarine.silenceCooldown == 0) {
+            silenceOrderAfter = chooseSilence();
         }
 
-        return movement + " | " + action;
+
+        /* MSG orders */
+        String msgOrder = "MSG Hello!";
+
+        return silenceOrderBefore + " | " + moveOrder + " | " + torpedoOrder + " | "
+                + mineOrder + " | " + silenceOrderAfter + " | " + msgOrder;
+    }
+
+    private String chooseSilence() {
+        Optional<Way> way = movementManager.chooseMovement(4);
+        return way.map(value -> "SILENCE " + value.orientation.label + " " + value.distance).orElse("");
     }
 
     /**
      * Choose the movement to play this turn.
      */
-    private String chooseMovement(int movesCount) {
-        Optional<Way> way = movementManager.chooseMovement(movesCount);
-
-        if (!way.isPresent()) {
-            return "SURFACE";
-        } else if (movesCount == 1) {
-            return "MOVE " + way.get().orientation.label;
-        } else {
-            return "SILENCE " + way.get().orientation.label + " " + way.get().distance;
-        }
+    private String chooseMovement() {
+        Optional<Way> way = movementManager.chooseMovement(1);
+        return way.map(value -> "MOVE " + value.orientation.label).orElse("SURFACE");
     }
 }

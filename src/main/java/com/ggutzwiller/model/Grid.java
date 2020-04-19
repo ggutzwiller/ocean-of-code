@@ -96,7 +96,7 @@ public class Grid {
      * @param targetCell the target cell
      * @return a set of cells that were shot
      */
-    public Set<Cell> getTorpedoZone(Cell targetCell) {
+    public Set<Cell> getTorpedoMineZone(Cell targetCell) {
         return Arrays.stream(this.cells)
                 .flatMap(Arrays::stream)
                 .filter(cell -> !cell.island)

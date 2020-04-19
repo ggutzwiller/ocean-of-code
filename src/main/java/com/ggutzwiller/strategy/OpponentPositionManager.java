@@ -14,6 +14,8 @@ public class OpponentPositionManager {
     public Grid grid;
     public Set<Path> possibleOpponentPaths;
     public Cell lastShot;
+    public Cell lastMine;
+    public Map<Cell, Double> possibleOpponentCells;
 
     public OpponentPositionManager(Grid grid) {
         this.grid = grid;
@@ -44,27 +46,29 @@ public class OpponentPositionManager {
                     }
                 });
 
-        Set<Cell> possibleCells = this.getPossibleOpponentCells();
-        Printer.log("Number of possible paths: " + possibleOpponentPaths.size() + " and cells: " + possibleCells.size());
-        if (possibleCells.size() < 36) {
-            Printer.log("Possible cells are: " + possibleCells);
-        }
+        possibleOpponentCells = new HashMap<>();
+        double unit = 1. / possibleOpponentPaths.size();
+
+        possibleOpponentPaths.forEach(path -> {
+             if (possibleOpponentCells.containsKey(path.lastCell)) {
+                 possibleOpponentCells.put(path.lastCell, possibleOpponentCells.get(path.lastCell) + unit);
+             } else {
+                 possibleOpponentCells.put(path.lastCell, unit);
+             }
+        });
+
+        Printer.log("Number of possible paths: " + possibleOpponentPaths.size() + " and cells: " + possibleOpponentCells.size());
 
         if (this.possibleOpponentPaths.size() > 500) {
             Printer.log("Too much paths, reducing size to current possible cells");
-            this.possibleOpponentPaths = possibleCells.stream()
+            this.possibleOpponentPaths = possibleOpponentCells.keySet()
+                    .stream()
                     .map(Path::new)
                     .collect(Collectors.toSet());
         } else if (this.possibleOpponentPaths.size() == 0){
             Printer.log("No path found. Resetting list.");
             resetListOfPaths();
         }
-    }
-
-    public Set<Cell> getPossibleOpponentCells() {
-        return possibleOpponentPaths.stream()
-                .map(path -> path.lastCell)
-                .collect(Collectors.toSet());
     }
 
     /**
@@ -87,9 +91,14 @@ public class OpponentPositionManager {
                     .filter(path -> path.lastCell.equals(this.lastShot))
                     .collect(Collectors.toSet());
         } else if (lastShot != null && (opponentLifeLost == 2 || opponentLifeLost == 1 && !orders.contains("SURFACE"))) {
-            Set<Cell> torpedoZone = this.grid.getTorpedoZone(lastShot);
+            Set<Cell> torpedoZone = this.grid.getTorpedoMineZone(lastShot);
             this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
                     .filter(path -> torpedoZone.contains(path.lastCell))
+                    .collect(Collectors.toSet());
+        } else if (lastShot != null) {
+            Set<Cell> torpedoZone = this.grid.getTorpedoMineZone(lastShot);
+            this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
+                    .filter(path -> !torpedoZone.contains(path.lastCell) && !path.lastCell.equals(lastShot))
                     .collect(Collectors.toSet());
         }
     }
@@ -116,22 +125,24 @@ public class OpponentPositionManager {
     private void handleSilenceOrder() {
         this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
                 .flatMap(path -> {
-                    List<Cell> nextCells = new ArrayList<>();
+                    List<Way> nextWays = new ArrayList<>();
                     for (Orientation orientation : Orientation.values()) {
                         for (int i = 1; i <= 4; i++) {
-                            this.grid.applyWay(path, new Way(i, orientation))
-                                    .ifPresent(nextCells::add);
+                            Way way = new Way(i, orientation);
+                            this.grid.applyWay(path, way)
+                                    .ifPresent(cell -> nextWays.add(way));
                         }
                     }
-                    nextCells.add(path.lastCell);
 
-                    return nextCells.stream()
-                            .distinct()
-                            .map(cell -> {
+                    Set<Path> paths = nextWays.stream()
+                            .map(way -> {
                                 Path newPath = new Path(path);
-                                newPath.addCell(cell);
+                                this.grid.applyChosenWayOnPath(newPath, way);
                                 return newPath;
-                            });
+                            })
+                            .collect(Collectors.toSet());
+                    paths.add(path);
+                    return paths.stream();
                 })
                 .collect(Collectors.toSet());
     }
@@ -151,6 +162,7 @@ public class OpponentPositionManager {
     void handleTorpedoOrder(String torpedoCoordinates) {
         String[] coord = torpedoCoordinates.split(" ");
         Cell shotCell = this.grid.cells[Integer.parseInt(coord[0])][Integer.parseInt(coord[1])];
+        Printer.log("Opponent torpedo hit cell " + shotCell);
 
         this.possibleOpponentPaths = this.possibleOpponentPaths.stream()
                 .filter(path -> shotCell.distance(path.lastCell) <= 4)
